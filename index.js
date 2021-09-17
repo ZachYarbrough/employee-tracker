@@ -2,7 +2,48 @@ const inquirer = require('inquirer');
 const db = require('./db/connection');
 const cTable = require('console.table');
 
-function primaryPrompt () {
+let departments = [];
+let roles = [];
+let employees = [];
+function updateTables(){
+    const departmentsTemp = [];
+    const rolesTemp = [];
+    const employeesTemp = [];
+    db.query(`SELECT * FROM department`, (err, rows) => {
+        if(err) {
+            console.log(err);
+            return;
+        }
+        for(let i = 0; i < rows.length; i++) {
+            departmentsTemp.push(rows[i].name);
+        }
+        departments = departmentsTemp;
+    });
+    
+    db.query(`SELECT * FROM role`, (err, rows) => {
+        if(err) {
+            console.log(err);
+            return;
+        }
+        for(let i = 0; i < rows.length; i++) {
+            rolesTemp.push(rows[i].title);
+        }
+        roles = rolesTemp;
+    });
+    
+    db.query(`SELECT * FROM employee`, (err, rows) => {
+        if(err) {
+            console.log(err);
+            return;
+        }
+        for(let i = 0; i < rows.length; i++) {
+            employeesTemp.push(rows[i].first_name + ' ' + rows[i].last_name);
+        }
+        employees = employeesTemp;
+    });
+}
+
+function primaryPrompt() {
     inquirer.prompt([
         {
             type: 'list',
@@ -14,40 +55,180 @@ function primaryPrompt () {
         continuedPropmt(choice);
     }).catch(err => {
         if(err) throw err;
-        return;
     })
 };
 
 function continuedPropmt(choice) {
-    if (choice === 'View All Departments') {
-        const sql = `SELECT * FROM department`
-        db.query(sql, (err, rows) => {
-            if(err) {
-                console.log(err);
-                return;
-            }
-            console.table(rows);
-        });
-    } else if (choice === 'View All Roles') {
-        const sql = `SELECT * FROM role`
-        db.query(sql, (err, rows) => {
-            if(err) {
-                console.log(err);
-                return;
-            }
-            console.table(rows);
-        });
-    } else if (choice === 'View All Employees') {
-        const sql = `SELECT * FROM employee`
-        db.query(sql, (err, rows) => {
-            if(err) {
-                console.log(err);
-                return;
-            }
-            console.table(rows);
-        });
+    let sql;
+    let params = [];
+
+    switch(choice) {
+        case 'View All Departments':
+            sql = `SELECT * FROM department`
+
+            db.query(sql, (err, rows) => {
+                if(err) {
+                    console.log(err);
+                    return;
+                }
+                console.table(rows);
+                primaryPrompt();
+            });
+            break;
+        case 'View All Roles':
+            sql = `SELECT * FROM role`
+
+            db.query(sql, (err, rows) => {
+                if(err) {
+                    console.log(err);
+                    return;
+                }
+                console.table(rows);
+                primaryPrompt();
+            });
+            break;
+        case 'View All Employees':
+            sql = `SELECT * FROM employee`
+
+            db.query(sql, (err, rows) => {
+                if(err) {
+                    console.log(err);
+                    return;
+                }
+                console.table(rows);
+                primaryPrompt();
+            });
+            break;
+        case 'Add Department':
+            inquirer.prompt([
+                {
+                    type: 'input',
+                    name: 'department',
+                    message: 'What is the name of your department?'
+                }
+            ]).then(({ department }) => {
+                sql = `INSERT INTO department (name) VALUE (?)`;
+                params = [department];
+                db.query(sql, params, (err, row) => {
+                    if(err) {
+                        console.log(err);
+                        return;
+                    }
+                    console.log(`Added ${department} to the department table.`);
+                    updateTables();
+                    primaryPrompt();
+                })
+            }).catch(err => {
+                if(err) throw err;
+            })
+            break;
+        case 'Add Role':
+            inquirer.prompt([
+                {
+                    type: 'input',
+                    name: 'title',
+                    message: 'What is the title of the role?'
+                }, 
+                {
+                    type: 'input',
+                    name: 'salary',
+                    message: 'What is the salary of the role?'
+                }, {
+                    type: 'list',
+                    name: 'department',
+                    message: 'What department is the role in?',
+                    choices: departments
+                }
+            ]).then(({ title, salary, department }) => {
+                let depId = departments.indexOf(department) + 1;
+                sql = `INSERT INTO role (title, salary, department_id) VALUE (?, ?, ?)`;
+                params = [title, salary, depId];
+                db.query(sql, params, (err, row) => {
+                    if(err) {
+                        console.log(err);
+                        return;
+                    }
+                    console.log(`Added ${title} to the role table.`);
+                    updateTables();
+                    primaryPrompt();
+                })
+            }).catch(err => {
+                if(err) throw err;
+            })
+            break;
+        case 'Add Employee':
+            inquirer.prompt([
+                {
+                    type: 'input',
+                    name: 'first_name',
+                    message: 'What is the first name of the employee?'
+                }, 
+                {
+                    type: 'input',
+                    name: 'last_name',
+                    message: 'What is the last name of the employee?'
+                }, {
+                    type: 'list',
+                    name: 'role',
+                    message: 'What is thier role?',
+                    choices: roles
+                }, {
+                    type: 'list',
+                    name: 'manager',
+                    message: 'Who is their manager?',
+                    choices: employees
+                }
+            ]).then(({ first_name, last_name, role, manager }) => {
+                let roleId = roles.indexOf(role) + 1;
+                let managerId = employees.indexOf(manager) + 1;
+                sql = `INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUE (?, ?, ?, ?)`;
+                params = [first_name, last_name, roleId, managerId];
+                db.query(sql, params, (err, row) => {
+                    if(err) {
+                        console.log(err);
+                        return;
+                    }
+                    console.log(`Added ${first_name} ${last_name} to the employee table.`);
+                    updateTables();
+                    primaryPrompt();
+                })
+            }).catch(err => {
+                if(err) throw err;
+            })
+            break;
+        case 'Update Employee Role':
+            inquirer.prompt([
+                {
+                    type: 'list',
+                    name: 'employee',
+                    message: 'Who would you like to update?',
+                    choices: employees
+                }, {
+                    type: 'list',
+                    name: 'role',
+                    message: 'What role do you want to give them?',
+                    choices: roles
+                }
+            ]).then(({ employee, role }) => {
+                let roleId = roles.indexOf(role) + 1;
+                let employeeId = employees.indexOf(employee) + 1;
+                sql =  `UPDATE employee SET role_id = ? WHERE id = ?`;
+                params = [roleId, employeeId]
+                db.query(sql, params, (err, row) => {
+                    if(err) {
+                        console.log(err);
+                        return;
+                    }
+                    console.log(`Updated ${employees}'s role to ${role}'.`);
+                    updateTables();
+                    primaryPrompt();
+                })
+            }).catch(err => {
+                if(err) throw err;
+            })
+            break;
     }
-    primaryPrompt();
 }
 
+updateTables();
 primaryPrompt();
