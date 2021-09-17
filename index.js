@@ -11,21 +11,43 @@ function primaryPrompt () {
             choices: ['View All Departments', 'View All Roles', 'View All Employees', 'Add Department', 'Add Role', 'Add Employee', 'Update Employee Role']
         }
     ]).then(({ choice }) => {
-        if(choice === 'View All Departments') {
-            const sql = `SELECT * FROM department`
-            db.query(sql, (err, rows) => {
-                if(err) {
-                    console.log(err);
-                    return;
-                }
-                console.table(rows);
-            });
-            primaryPrompt();
-        }
+        continuedPropmt(choice);
     }).catch(err => {
         if(err) throw err;
         return;
     })
 };
+
+function continuedPropmt(choice) {
+    if (choice === 'View All Departments') {
+        const sql = `SELECT * FROM department`
+        db.query(sql, (err, rows) => {
+            if(err) {
+                console.log(err);
+                return;
+            }
+            console.table(rows);
+        });
+    } else if (choice === 'View All Roles') {
+        const sql = `SELECT * FROM role`
+        db.query(sql, (err, rows) => {
+            if(err) {
+                console.log(err);
+                return;
+            }
+            console.table(rows);
+        });
+    } else if (choice === 'View All Employees') {
+        const sql = `SELECT * FROM employee`
+        db.query(sql, (err, rows) => {
+            if(err) {
+                console.log(err);
+                return;
+            }
+            console.table(rows);
+        });
+    }
+    primaryPrompt();
+}
 
 primaryPrompt();
