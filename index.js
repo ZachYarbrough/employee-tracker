@@ -40,6 +40,7 @@ function updateTables(){
             employeesTemp.push(rows[i].first_name + ' ' + rows[i].last_name);
         }
         employees = employeesTemp;
+        employees.push('No Manager');
     });
 }
 
@@ -76,7 +77,8 @@ function continuedPropmt(choice) {
             });
             break;
         case 'View All Roles':
-            sql = `SELECT * FROM role`
+            sql = `SELECT role.id, role.title, department.name AS department FROM role
+            LEFT JOIN department ON role.department_id = department.id`
 
             db.query(sql, (err, rows) => {
                 if(err) {
@@ -88,7 +90,10 @@ function continuedPropmt(choice) {
             });
             break;
         case 'View All Employees':
-            sql = `SELECT * FROM employee`
+            sql = `SELECT base.id, base.first_name, base.last_name, role.title AS title, department.name AS department, CONCAT(manager.first_name, ' ', manager.last_name) AS manager FROM employee base
+            LEFT JOIN role ON base.role_id = role.id 
+            LEFT JOIN department ON role.department_id = department.id
+            LEFT JOIN employee manager ON base.manager_id = manager.id`
 
             db.query(sql, (err, rows) => {
                 if(err) {
@@ -180,7 +185,12 @@ function continuedPropmt(choice) {
                 }
             ]).then(({ first_name, last_name, role, manager }) => {
                 let roleId = roles.indexOf(role) + 1;
-                let managerId = employees.indexOf(manager) + 1;
+                let managerId;
+                if(manager === 'No Manager') {
+                    managerId = null;
+                } else {
+                    managerId = employees.indexOf(manager) + 1;
+                }
                 sql = `INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUE (?, ?, ?, ?)`;
                 params = [first_name, last_name, roleId, managerId];
                 db.query(sql, params, (err, row) => {
