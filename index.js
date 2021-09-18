@@ -406,7 +406,7 @@ function continuedPropmt(choice) {
                         console.log(err);
                         return;
                     }
-                    console.log(`Deleted ${employee} form the table.`);
+                    console.log(`Deleted ${employee} from the employee table.`);
                     updateTables();
                     primaryPrompt();
                 });
